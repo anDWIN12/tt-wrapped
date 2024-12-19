@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Wrapped</title>
+    <style>
+        /* CSS */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1.title {
+            font-size: 2em;
+            color: #4CAF50;
+        }
+
+        #file-input {
+            margin-top: 20px;
+            padding: 10px;
+            font-size: 1em;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            font-size: 1em;
+            border: none;
+            margin-top: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #wrapped-content {
+            margin-top: 30px;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: 400px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">TikTok Wrapped</h1>
+        <p>Upload your TikTok "Download My Data" JSON file:</p>
+        <input type="file" id="file-input" accept=".json">
+        <button id="upload-btn">Upload</button>
+        
+        <div id="wrapped-content" style="display:none;">
+            <h2>Your TikTok Wrapped</h2>
+            <p>Total Videos Watched: <span id="total-videos"></span></p>
+            <h3>Top Hashtags</h3>
+            <canvas id="hashtags-chart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript
+        document.getElementById('upload-btn').addEventListener('click', function() {
+            const fileInput = document.getElementById('file-input');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert("Please upload a file.");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    const wrappedStats = processTikTokData(data);
+                    displayWrappedContent(wrappedStats);
+                } catch (error) {
+                    alert("Error parsing the file. Please upload a valid TikTok JSON file.");
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        function processTikTokData(data) {
+            const videos = data.Activity.Videos || [];
+            const totalVideos = videos.length;
+            const hashtags = [];
+
+            // Extract hashtags from videos
+            videos.forEach(video => {
+                video.hashtags.forEach(tag => {
+                    hashtags.push(tag);
+                });
+            });
+
+            // Count top 5 hashtags
+            const hashtagCounts = countHashtags(hashtags);
+            return { totalVideos, hashtagCounts };
+        }
+
+        function countHashtags(hashtags) {
+            const counts = {};
+            hashtags.forEach(tag => {
+                counts[tag] = (counts[tag] || 0) + 1;
+            });
+
+            // Sort hashtags by count and return top 5
+            const sortedHashtags = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            return sortedHashtags;
+        }
+
+        function displayWrappedContent(stats) {
+            document.getElementById('total-videos').textContent = stats.totalVideos;
+
+            // Prepare data for the chart
+            const labels = stats.hashtagCounts.map(item => item[0]);
+            const data = stats.hashtagCounts.map(item => item[1]);
+
+            // Display the chart
+            const ctx = document.getElementById('hashtags-chart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Top Hashtags',
+                        data: data,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Show the wrapped content section
+            document.getElementById('wrapped-content').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
